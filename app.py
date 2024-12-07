@@ -82,7 +82,6 @@ def index():
             end_status="Плохая погода" if end_bad else "Хорошая погода"
         )
 
-    # Если метод GET — отображаем форму
     return render_template("index.html")
 
 if __name__ == "__main__":
