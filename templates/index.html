@@ -2,18 +2,96 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Прогноз погоды на маршруте</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #007acc;
+            color: #fff;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .container {
+            max-width: 600px;
+            margin: 2rem auto;
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .description {
+            text-align: center;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        form label {
+            display: block;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+        form input[type="text"] {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid #ccc;
+            border-radius: 0.3rem;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        form input[type="submit"] {
+            background: #007acc;
+            color: #fff;
+            padding: 0.7rem 1.2rem;
+            border: none;
+            border-radius: 0.3rem;
+            cursor: pointer;
+            font-size: 1rem;
+            display: block;
+            margin: 1rem auto 0 auto;
+        }
+        form input[type="submit"]:hover {
+            background: #005a99;
+        }
+        footer {
+            text-align: center;
+            margin: 2rem 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-    <h1>Прогноз погоды по маршруту</h1>
-    <form method="POST" action="/check_route">
-        <label>Начальный город:
-            <input type="text" name="start_point" required>
-        </label><br><br>
-        <label>Конечный город:
-            <input type="text" name="end_point" required>
-        </label><br><br>
-        <input type="submit" value="Проверить">
-    </form>
+    <header>
+        <h1>Прогноз погоды по маршруту</h1>
+    </header>
+    <div class="container">
+        <div class="description">
+            Введите начальный и конечный города, чтобы узнать погодные условия на вашем маршруте.
+        </div>
+        <form method="POST" action="/check_route">
+            <label>
+                Начальный город:
+                <input type="text" name="start_point" required placeholder="Например, Москва">
+            </label>
+            <label>
+                Конечный город:
+                <input type="text" name="end_point" required placeholder="Например, Санкт-Петербург">
+            </label>
+            <input type="submit" value="Проверить">
+        </form>
+    </div>
+    <footer>
+        © 2024 Прогноз погоды по маршруту
+    </footer>
 </body>
 </html>
