@@ -2,18 +2,67 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Прогноз погоды по маршруту</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 5rem auto;
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #007acc;
+        }
+        form label {
+            display: block;
+            margin: 1rem 0 0.5rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        form input[type="text"] {
+            width: 100%;
+            padding: 0.7rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 0.3rem;
+            font-size: 1rem;
+        }
+        form input[type="submit"] {
+            background: #007acc;
+            color: #ffffff;
+            border: none;
+            border-radius: 0.3rem;
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        form input[type="submit"]:hover {
+            background: #005a99;
+        }
+    </style>
 </head>
 <body>
-    <h1>Введите начальный и конечный пункт</h1>
-    <form method="POST" action="/">
-        <label>Начальный город:
-            <input type="text" name="start_point" required>
-        </label><br><br>
-        <label>Конечный город:
-            <input type="text" name="end_point" required>
-        </label><br><br>
-        <input type="submit" value="Проверить погоду">
-    </form>
+    <div class="container">
+        <h1>Прогноз погоды по маршруту</h1>
+        <form method="POST" action="/">
+            <label>Начальный город:</label>
+            <input type="text" name="start_point" required placeholder="Например, Москва">
+
+            <label>Конечный город:</label>
+            <input type="text" name="end_point" required placeholder="Например, Санкт-Петербург">
+
+            <input type="submit" value="Проверить погоду">
+        </form>
+    </div>
 </body>
 </html>

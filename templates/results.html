@@ -2,12 +2,75 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Результат прогноза</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 700px;
+            margin: 5rem auto;
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #007acc;
+        }
+        .city-info {
+            margin-bottom: 2rem;
+            background: #f9f9f9;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #ddd;
+        }
+        .city-info h2 {
+            margin-top: 0;
+            color: #007acc;
+        }
+        .city-info p {
+            margin: 0.5rem 0;
+            line-height: 1.4;
+        }
+        a {
+            display: inline-block;
+            margin-top: 1rem;
+            background: #007acc;
+            color: #fff;
+            padding: 0.7rem 1.2rem;
+            border-radius: 0.3rem;
+            text-decoration: none;
+            text-align: center;
+        }
+        a:hover {
+            background: #005a99;
+        }
+    </style>
 </head>
 <body>
-    <h1>Результат прогноза</h1>
-    <p><b>{{ start_point }}</b>: Температура: {{ start_temp }}°C, Ветер: {{ start_wind }} км/ч, Осадки: {{ start_precip }}%, Состояние: {{ start_status }}</p>
-    <p><b>{{ end_point }}</b>: Температура: {{ end_temp }}°C, Ветер: {{ end_wind }} км/ч, Осадки: {{ end_precip }}%, Состояние: {{ end_status }}</p>
-    <a href="/">Назад к форме</a>
+    <div class="container">
+        <h1>Результат прогноза</h1>
+        <div class="city-info">
+            <h2>{{ start_point }}</h2>
+            <p>Температура: {{ start_temp }}°C</p>
+            <p>Ветер: {{ start_wind }} км/ч</p>
+            <p>Вероятность осадков: {{ start_precip }}%</p>
+            <p>Состояние: {{ start_status }}</p>
+        </div>
+        <div class="city-info">
+            <h2>{{ end_point }}</h2>
+            <p>Температура: {{ end_temp }}°C</p>
+            <p>Ветер: {{ end_wind }} км/ч</p>
+            <p>Вероятность осадков: {{ end_precip }}%</p>
+            <p>Состояние: {{ end_status }}</p>
+        </div>
+        <a href="/">Назад к форме</a>
+    </div>
 </body>
 </html>
