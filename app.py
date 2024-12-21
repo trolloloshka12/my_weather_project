@@ -1,7 +1,32 @@
 from flask import Flask, request, render_template
 import requests
+from dash import Dash, dcc, html
 
 app = Flask(__name__)
+
+# Интеграция Dash в Flask
+dash_app = Dash(
+    __name__,
+    server=app,
+    url_base_pathname='/dash/'
+)
+
+# Пример страницы Dash
+dash_app.layout = html.Div([
+    html.H1("График погоды на маршруте"),
+    dcc.Graph(
+        id='example-graph',
+        figure={
+            'data': [
+                {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'Город 1'},
+                {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': 'Город 2'},
+            ],
+            'layout': {
+                'title': 'Пример графика'
+            }
+        }
+    )
+])
 
 API_KEY = "DvTIGor3G9AjzPN8J2A9BpXgG8knkCRS"
 
