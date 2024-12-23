@@ -4,6 +4,7 @@ from dash.dependencies import ALL
 from dash.dash_table import DataTable
 import requests
 import plotly.graph_objs as go
+import dash_leaflet as dl
 import time
 import logging
 
@@ -46,6 +47,23 @@ def get_location_key_by_name(city_name):
     return None
 
 
+def get_location_coordinates(city_name):
+    """Получение координат для заданного города."""
+    url = f"http://dataservice.accuweather.com/locations/v1/cities/search"
+    params = {"apikey": API_KEY, "q": city_name}
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                latitude = data[0]["GeoPosition"]["Latitude"]
+                longitude = data[0]["GeoPosition"]["Longitude"]
+                return latitude, longitude
+    except Exception as e:
+        logger.error(f"Ошибка при получении координат для города '{city_name}': {e}")
+    return None
+
+
 def get_weather_forecast(location_key, forecast_type='12h', retries=3):
     """
     Получение прогноза погоды для заданного ключа локации.
@@ -53,7 +71,7 @@ def get_weather_forecast(location_key, forecast_type='12h', retries=3):
     :param location_key: str, ключ локации AccuWeather
     :param forecast_type: str, тип прогноза ('12h', '1d', '5d')
     :param retries: int, количество повторных попыток в случае ошибки
-    :return: list, данные прогноза
+    :return: dict или list, данные прогноза
     """
     if not location_key:
         logger.error("Ключ локации отсутствует.")
@@ -83,7 +101,7 @@ def get_weather_forecast(location_key, forecast_type='12h', retries=3):
         logger.info(f"Запрос к API: {r.url}")
 
         if r.status_code == 200:
-            return r.json()
+            return r.json()  # Проверьте, что данные возвращаются в ожидаемом формате
 
         if r.status_code == 503:
             logger.warning("Сервис недоступен. Повторяем запрос...")
@@ -97,21 +115,32 @@ def get_weather_forecast(location_key, forecast_type='12h', retries=3):
 
 def prepare_graph_data(weather_data):
     """Подготовка данных для графиков"""
-    if "DailyForecasts" in weather_data:  # Данные для дневного прогноза
+    if not weather_data:
+        raise ValueError("Пустые данные прогноза")
+
+    if "DailyForecasts" in weather_data:
         forecasts = weather_data["DailyForecasts"]
+        if not forecasts:
+            raise ValueError("Отсутствуют данные о дневных прогнозах")
         times = [forecast["Date"] for forecast in forecasts]
-        temperatures = [(forecast["Temperature"]["Minimum"]["Value"] + forecast["Temperature"]["Maximum"]["Value"]) / 2
-                        for forecast in forecasts]
-        wind_speeds = [forecast.get("Day", {}).get("Wind", {}).get("Speed", {}).get("Value", 0) for forecast in
-                       forecasts]
+        temperatures = [
+            (forecast["Temperature"]["Minimum"]["Value"] + forecast["Temperature"]["Maximum"]["Value"]) / 2
+            for forecast in forecasts
+        ]
+        wind_speeds = [
+            forecast.get("Day", {}).get("Wind", {}).get("Speed", {}).get("Value", 0) for forecast in forecasts
+        ]
         precip_probs = [forecast.get("Day", {}).get("PrecipitationProbability", 0) for forecast in forecasts]
-    else:  # Данные для почасового прогноза
+    elif isinstance(weather_data, list):
         forecasts = weather_data
+        if not forecasts:
+            raise ValueError("Отсутствуют данные о почасовых прогнозах")
         times = [forecast["DateTime"] for forecast in forecasts]
         temperatures = [forecast["Temperature"]["Value"] for forecast in forecasts]
         wind_speeds = [forecast["Wind"]["Speed"]["Value"] for forecast in forecasts]
         precip_probs = [forecast["PrecipitationProbability"] for forecast in forecasts]
-
+    else:
+        raise ValueError("Неизвестный формат данных прогноза")
     return times, temperatures, wind_speeds, precip_probs
 
 
@@ -160,6 +189,13 @@ dash_app.layout = html.Div([
     html.Div([
         html.H2("Таблица прогноза погоды"),
         DataTable(id='weather-table', style_table={'overflowX': 'auto'})
+    ], style={'margin-top': '20px'}),
+    html.Div([
+        html.H2("Маршрут на карте"),
+        dl.Map(id="route-map", style={'width': '100%', 'height': '500px'}, center=[55.751244, 37.618423], zoom=5, children=[
+            dl.TileLayer(),
+            dl.LayerGroup(id="map-layers")
+        ])
     ], style={'margin-top': '20px'})
 ])
 
@@ -185,7 +221,8 @@ def add_city_input(n_clicks, existing_inputs):
     [Output('route-weather-graph', 'figure'),
      Output('weather-table', 'data'),
      Output('weather-table', 'columns'),
-     Output('error-message', 'children')],
+     Output('error-message', 'children'),
+     Output('map-layers', 'children')],
     [Input('submit-button', 'n_clicks')],
     [State('start-city', 'value'),
      State('end-city', 'value'),
@@ -193,9 +230,9 @@ def add_city_input(n_clicks, existing_inputs):
      State('time-interval-dropdown', 'value'),
      State('parameters-checklist', 'value')]
 )
-def update_graph_and_table(n_clicks, start_city, end_city, intermediate_cities, forecast_type, selected_params):
+def update_graph_table_map(n_clicks, start_city, end_city, intermediate_cities, forecast_type, selected_params):
     if n_clicks == 0:
-        return {}, [], [], ""
+        return {}, [], [], "", []
 
     all_cities = [start_city.strip()] + \
                  [city.strip() for city in intermediate_cities if city and city.strip()] + \
@@ -203,10 +240,11 @@ def update_graph_and_table(n_clicks, start_city, end_city, intermediate_cities, 
     all_cities = [city for city in all_cities if city]
 
     if len(all_cities) < 2:
-        return {}, [], [], "Введите начальный и конечный города."
+        return {}, [], [], "Введите начальный и конечный города.", []
 
     weather_data = {}
     errors = []
+    map_markers = []
 
     for city in all_cities:
         try:
@@ -216,20 +254,36 @@ def update_graph_and_table(n_clicks, start_city, end_city, intermediate_cities, 
                 continue
 
             forecast = get_weather_forecast(location_key, forecast_type)
-            if forecast:
-                weather_data[city] = prepare_graph_data(forecast)
-            else:
+            if not forecast:
                 errors.append(f"Не удалось получить прогноз для '{city}'.")
+                continue
 
+            weather_data[city] = prepare_graph_data(forecast)
+
+            # Получение координат города для карты
+            location_data = get_location_coordinates(city)
+            if location_data:
+                latitude, longitude = location_data
+                if "DailyForecasts" in forecast:
+                    temperature = forecast["DailyForecasts"][0]["Temperature"]["Maximum"]["Value"]
+                elif isinstance(forecast, list):
+                    temperature = forecast[0]["Temperature"]["Value"]
+                else:
+                    temperature = "Нет данных"
+                popup_content = f"{city}: Температура - {temperature}°C"
+                map_markers.append(
+                    dl.Marker(position=[latitude, longitude], children=[
+                        dl.Popup(popup_content)
+                    ])
+                )
         except Exception as e:
             errors.append(f"Ошибка при обработке города '{city}': {str(e)}")
 
     if not weather_data:
-        return {}, [], [], " ".join(errors)
+        return {}, [], [], " ".join(errors), []
 
     # Формирование графика
     figure = {'data': [], 'layout': {'title': 'Погодный прогноз по маршруту', 'xaxis': {'title': 'Время'}}}
-
     table_data = []
     columns = [
         {'name': 'Город', 'id': 'city'},
@@ -241,25 +295,32 @@ def update_graph_and_table(n_clicks, start_city, end_city, intermediate_cities, 
 
     for city, data in weather_data.items():
         times, temperatures, wind_speeds, precip_probs = data
-        for i in range(len(times)):
-            if 'temperature' in selected_params:
-                figure['data'].append(go.Scatter(x=times, y=temperatures, mode='lines+markers', name=f'Температура ({city})'))
-            if 'precipitation' in selected_params:
-                figure['data'].append(go.Scatter(x=times, y=precip_probs, mode='lines+markers', name=f'Осадки ({city})'))
-            if 'wind' in selected_params:
-                figure['data'].append(go.Scatter(x=times, y=wind_speeds, mode='lines+markers', name=f'Скорость ветра ({city})'))
+        if 'temperature' in selected_params:
+            figure['data'].append(go.Scatter(x=times, y=temperatures, mode='lines+markers', name=f'Температура ({city})'))
+        if 'precipitation' in selected_params:
+            figure['data'].append(go.Scatter(x=times, y=precip_probs, mode='lines+markers', name=f'Осадки ({city})'))
+        if 'wind' in selected_params:
+            figure['data'].append(go.Scatter(x=times, y=wind_speeds, mode='lines+markers', name=f'Скорость ветра ({city})'))
 
-            # Заполняем таблицу
+        for i, time in enumerate(times):
             table_data.append({
                 'city': city,
-                'datetime': times[i],
+                'datetime': time,
                 'temperature': temperatures[i],
                 'wind': wind_speeds[i],
                 'precipitation': precip_probs[i]
             })
 
-    return figure, table_data, columns, " ".join(errors) if errors else ""
+    if len(map_markers) > 1:
+        polyline_positions = [[marker.position[0], marker.position[1]] for marker in map_markers]
+        map_layers = [
+            dl.Polyline(positions=polyline_positions, color="blue"),
+            *map_markers
+        ]
+    else:
+        map_layers = map_markers
 
+    return figure, table_data, columns, " ".join(errors) if errors else "", map_layers
 
 
 if __name__ == "__main__":
