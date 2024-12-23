@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Убедитесь, что здесь установлен ваш реальный API-ключ
 API_KEY = "WKP4UIOGuSG1BpMqHmWlfeqJyzR5uYUd"
 
 
@@ -101,7 +100,7 @@ def get_weather_forecast(location_key, forecast_type='12h', retries=3):
         logger.info(f"Запрос к API: {r.url}")
 
         if r.status_code == 200:
-            return r.json()  # Проверьте, что данные возвращаются в ожидаемом формате
+            return r.json()
 
         if r.status_code == 503:
             logger.warning("Сервис недоступен. Повторяем запрос...")
